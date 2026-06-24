@@ -2,7 +2,7 @@
 
 <p align="center"><img src="./ogp.png" alt="opencode-gpt-imagegen × gpt-image-2" /></p>
 
-> Bring [**ChatGPT Images 2.0**](https://openai.com/index/introducing-chatgpt-images-2-0/) (`gpt-image-2`) to [OpenCode](https://opencode.ai). Use it through your **ChatGPT subscription** (no API costs!) or through the **OpenAI API** — your call.
+> Bring [**ChatGPT Images 2.0**](https://openai.com/index/introducing-chatgpt-images-2-0/) (`gpt-image-2`) to [OpenCode](https://opencode.ai). It uses your **ChatGPT/Codex OAuth** path first and can fall back to **OmniRoute** when Codex auth is unavailable.
 
 [![OpenCode plugin](https://img.shields.io/badge/OpenCode-plugin-blue.svg)](https://opencode.ai/docs/plugins/)
 [![npm version](https://img.shields.io/npm/v/opencode-gpt-imagegen.svg)](https://www.npmjs.com/package/opencode-gpt-imagegen)
@@ -11,13 +11,15 @@
 
 | Auth path | Status | Billing |
 |---|---|---|
-| **ChatGPT subscription** (OAuth) | **Available now in v0.1.0** | **No extra cost** — comes out of your existing Plus / Pro / Business plan |
-| **OpenAI API key** | **Coming soon in v0.2.0** | Pay-per-image against your API credits, with `generate` + `edit` support |
+| **ChatGPT subscription** (Codex OAuth) | **Default when available** | Comes out of your existing Plus / Pro / Business plan |
+| **OmniRoute API** | **Fallback when Codex OAuth is absent** | Depends on your OmniRoute backend/provider |
+| **OpenAI API key** | **Planned** | Pay-per-image against your API credits, with `generate` + `edit` support |
 
 ## Highlights
 
-- **Subscription-friendly.** Generations ride on the same Codex backend channel OpenCode already uses for ChatGPT subscription chat — billed against your ChatGPT plan, not your API credits.
-- **Reference images.** Pass any number of input images alongside the prompt for style guidance, edit targets, or compositing inputs.
+- **Subscription-friendly by default.** Generations ride on the same Codex backend channel OpenCode already uses for ChatGPT subscription chat when Codex OAuth exists.
+- **OmniRoute fallback.** If Codex OAuth is unavailable, the plugin can reuse OpenCode's `omniroute` API credential and OpenCode OmniRoute base URL config.
+- **Reference images on Codex.** Pass input images alongside the prompt for style guidance, edit targets, or compositing inputs. OmniRoute fallback currently supports text-to-image only until compatible reference-image support is verified.
 
 ## Installation
 
@@ -30,7 +32,34 @@ Add this plugin to your [OpenCode config](https://opencode.ai/docs/plugins/). Fo
 }
 ```
 
-OpenCode auto-installs the package via Bun on next launch — no separate `npm install` step is needed. The plugin requires OpenCode to be authenticated with ChatGPT.
+OpenCode auto-installs the package via Bun on next launch — no separate `npm install` step is needed. The plugin works best when OpenCode is authenticated with ChatGPT/Codex OAuth, and can also use OmniRoute credentials already stored in OpenCode auth.
+
+## Auth Selection
+
+Default behavior is `auto`:
+
+1. Use Codex OAuth from OpenCode's `openai` auth entry when available.
+2. Otherwise fall back to OmniRoute API auth from OpenCode's `omniroute` auth entry or `provider.omniroute.options.apiKey`.
+
+Force a provider for debugging:
+
+```sh
+GPT_IMAGEGEN_AUTH_PROVIDER=codex
+GPT_IMAGEGEN_AUTH_PROVIDER=omniroute
+```
+
+OmniRoute configuration:
+
+| Variable / config | Purpose |
+|---|---|
+| `GPT_IMAGEGEN_AUTH_PROVIDER=auto|codex|omniroute` | Select provider behavior; default is `auto` |
+| `GPT_IMAGEGEN_OMNIROUTE_BASE_URL` | Overrides the OmniRoute OpenAI-compatible base URL |
+| `GPT_IMAGEGEN_OMNIROUTE_MODEL` | Overrides the OmniRoute image model; default is `codex/gpt-5.5` |
+| OpenCode `omniroute` auth | Preferred source for the OmniRoute API key |
+| `provider.omniroute.options.baseURL` | Standard OpenCode provider base URL source |
+| OmniRoute wrapper plugin `options.baseURL` | Supported fallback for wrapper configs such as `./plugins/omniroute-wrapper.ts` |
+
+Base URLs are normalized so both `https://host` and `https://host/v1` call `POST /v1/images/generations` without producing `/v1/v1`.
 
 ## Usage
 
@@ -66,13 +95,16 @@ Pass any number of image paths via the `images` argument and the model uses them
 
 | Version | Auth path | Scope | Status |
 |---|---|---|---|
-| **v0.1.0** | ChatGPT subscription | `gpt_imagegen` with optional reference images (generation + reference-guided edits via prompting) | **Released** |
-| **v0.2.0** | OpenAI API key | Adds the API-key billing path: both `generate` (`/v1/images/generations`) and `edit` (`/v1/images/edits`) with reference images | Next |
-| **v0.3.0** | OpenAI API key | Adds **pixel-precise mask inpainting** via `/v1/images/edits` (binary PNG alpha mask) | Planned |
+| **v0.1.x** | ChatGPT subscription | `gpt_imagegen` with optional reference images (generation + reference-guided edits via prompting) | **Released** |
+| **v0.2.0** | OmniRoute API | Adds OmniRoute text-to-image fallback and provider forcing | Next |
+| **v0.3.0** | OpenAI API key | Adds the API-key billing path: both `generate` (`/v1/images/generations`) and `edit` (`/v1/images/edits`) with reference images | Planned |
+| **Later** | OpenAI API key | Adds **pixel-precise mask inpainting** via `/v1/images/edits` (binary PNG alpha mask) | Planned |
 
 ## How it works
 
-OpenCode already talks to the OpenAI Codex backend to power ChatGPT subscription chat. This plugin reuses that same endpoint, attaching the hosted `image_generation` tool to a single-turn request, then writes the returned PNG to disk. Auth is read from OpenCode's standard `auth.json`; no new credential surface is introduced.
+OpenCode already talks to the OpenAI Codex backend to power ChatGPT subscription chat. This plugin reuses that same endpoint first, attaching the hosted `image_generation` tool to a single-turn request, then writes the returned PNG to disk.
+
+When Codex OAuth is unavailable, the plugin can call OmniRoute's OpenAI-compatible `POST /v1/images/generations` endpoint. OmniRoute mode returns the same safe PNG output path but currently rejects reference images clearly instead of silently ignoring them.
 
 ## Disclaimer
 

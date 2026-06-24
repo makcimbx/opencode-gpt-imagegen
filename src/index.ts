@@ -1,8 +1,9 @@
 import type { Hooks, Plugin, PluginInput, PluginModule } from "@opencode-ai/plugin"
 import { tool } from "@opencode-ai/plugin"
-import { loadOpenAIAuth } from "./auth"
+import { resolveImageProvider } from "./auth"
 import { callViaCodexResponses } from "./codex"
 import { readReferenceImages } from "./input-image"
+import { callViaOmniRoute } from "./omniroute"
 import { saveGeneratedImage } from "./output-image"
 
 const GptImagePlugin: Plugin = async (_input: PluginInput): Promise<Hooks> => {
@@ -10,12 +11,12 @@ const GptImagePlugin: Plugin = async (_input: PluginInput): Promise<Hooks> => {
     tool: {
       gpt_imagegen: tool({
         description: [
-          "Generate raster images using OpenAI's hosted image_generation tool.",
+          "Generate raster images using Codex image_generation or OmniRoute image generation.",
           "Use for AI-created bitmap visuals such as photos, illustrations, textures, sprites, and mockups.",
           "Do not use when the task is better handled by editing existing SVG/vector/code-native assets, extending an established icon or logo system, or building the visual directly in HTML/CSS/canvas.",
           "Reference images may be attached through `images`; label each image's role inline in `prompt`, for example: 'Image 1: reference image'.",
           "For many distinct assets, invoke gpt_imagegen once per requested asset rather than relying on multi-image output; gpt_imagegen returns one image per call.",
-          "Requires OpenCode to be authenticated with ChatGPT OAuth. Returns the absolute path of the saved PNG.",
+          "Defaults to ChatGPT/Codex OAuth when available, then falls back to OmniRoute API credentials; set GPT_IMAGEGEN_AUTH_PROVIDER=codex or omniroute to force a path. Returns the absolute path of the saved PNG.",
         ].join(" "),
         // https://developers.openai.com/api/docs/guides/image-generation
         args: {
@@ -38,13 +39,12 @@ const GptImagePlugin: Plugin = async (_input: PluginInput): Promise<Hooks> => {
             .describe("Optional reference image paths, relative to the project directory unless absolute."),
         },
         async execute(args, ctx) {
-          const auth = await loadOpenAIAuth()
-          if (!auth) {
-            throw new Error("OpenAI ChatGPT OAuth credentials not configured.")
-          }
-
+          const provider = await resolveImageProvider()
           const inputImageDataUrls = await readReferenceImages(args.images, ctx.directory)
-          const base64 = await callViaCodexResponses(auth, args, inputImageDataUrls)
+          const base64 =
+            provider.kind === "codex"
+              ? await callViaCodexResponses(provider.auth, args, inputImageDataUrls)
+              : await callViaOmniRoute(provider.auth, args, inputImageDataUrls)
 
           const { savedPath, versioned, message } = await saveGeneratedImage(args.out, ctx.directory, base64)
 
@@ -53,7 +53,8 @@ const GptImagePlugin: Plugin = async (_input: PluginInput): Promise<Hooks> => {
             metadata: {
               out: savedPath,
               versioned,
-              billing: "subscription",
+              provider: provider.kind,
+              billing: provider.kind === "codex" ? "subscription" : "omniroute",
             },
           }
         },

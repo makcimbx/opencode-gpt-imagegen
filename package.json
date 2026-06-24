@@ -1,7 +1,7 @@
 {
   "name": "opencode-gpt-imagegen",
   "version": "0.1.8",
-  "description": "OpenCode plugin for GPT Image 2 generation through your ChatGPT subscription, with reference images and safe PNG output.",
+  "description": "OpenCode plugin for GPT Image 2 generation through Codex OAuth or OmniRoute fallback, with safe PNG output.",
   "type": "module",
   "main": "./dist/index.js",
   "exports": {
@@ -21,6 +21,7 @@
     "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external",
     "test": "bun test tests/unit",
     "test:e2e_subscription": "OPENCODE_MODEL=openai/gpt-5.5 bun test tests/e2e/subscription.test.ts",
+    "test:e2e_omniroute": "GPT_IMAGEGEN_AUTH_PROVIDER=omniroute bun test tests/e2e/omniroute.test.ts",
     "prepublishOnly": "bun run build",
     "release:patch": "bash scripts/prepare-release.sh patch && git push --follow-tags",
     "release:minor": "bash scripts/prepare-release.sh minor && git push --follow-tags",
@@ -40,6 +41,7 @@
     "chatgpt-images",
     "chatgpt-oauth",
     "codex",
+    "omniroute",
     "plugin"
   ],
   "author": "Yuji Hatakeyama",
