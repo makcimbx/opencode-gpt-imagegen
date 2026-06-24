@@ -1,12 +1,12 @@
-# opencode-gpt-imagegen
+# @makcimbx/opencode-gpt-imagegen
 
 <p align="center"><img src="./ogp.png" alt="opencode-gpt-imagegen × gpt-image-2" /></p>
 
 > Bring [**ChatGPT Images 2.0**](https://openai.com/index/introducing-chatgpt-images-2-0/) (`gpt-image-2`) to [OpenCode](https://opencode.ai). It uses your **ChatGPT/Codex OAuth** path first and can fall back to **OmniRoute** when Codex auth is unavailable.
 
 [![OpenCode plugin](https://img.shields.io/badge/OpenCode-plugin-blue.svg)](https://opencode.ai/docs/plugins/)
-[![npm version](https://img.shields.io/npm/v/opencode-gpt-imagegen.svg)](https://www.npmjs.com/package/opencode-gpt-imagegen)
-[![CI](https://github.com/yuji-hatakeyama/opencode-gpt-imagegen/actions/workflows/ci.yml/badge.svg)](https://github.com/yuji-hatakeyama/opencode-gpt-imagegen/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@makcimbx/opencode-gpt-imagegen.svg)](https://www.npmjs.com/package/@makcimbx/opencode-gpt-imagegen)
+[![CI](https://github.com/makcimbx/opencode-gpt-imagegen/actions/workflows/ci.yml/badge.svg)](https://github.com/makcimbx/opencode-gpt-imagegen/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 | Auth path | Status | Billing |
@@ -28,7 +28,7 @@ Add this plugin to your [OpenCode config](https://opencode.ai/docs/plugins/). Fo
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["opencode-gpt-imagegen"]
+  "plugin": ["@makcimbx/opencode-gpt-imagegen"]
 }
 ```
 
