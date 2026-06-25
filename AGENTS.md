@@ -28,7 +28,7 @@
 ## Implementation Notes
 
 - The exposed tool is `gpt_imagegen`; provider resolution defaults to Codex OAuth first and falls back to OmniRoute API auth when Codex OAuth is unavailable. Set `GPT_IMAGEGEN_AUTH_PROVIDER=codex|omniroute` to force one path.
-- Codex mode calls the ChatGPT Codex responses endpoint with the hosted `image_generation` tool. OmniRoute mode calls OpenAI-compatible `POST /v1/images/generations`, defaults to image model `codex/gpt-5.5`, omits unverified `quality`, and currently supports text-to-image only.
+- Codex mode calls the ChatGPT Codex responses endpoint with the hosted `image_generation` tool. OmniRoute mode calls OpenAI-compatible `POST /v1/images/generations`, defaults to image model `codex/gpt-5.5`, omits unverified `quality`, and forwards reference images as `image_url` / `image_urls` data URLs.
 - Output paths are resolved relative to the OpenCode context directory unless absolute, and existing files are never overwritten; suffixes `-v2` through `-v999` are tried.
 - Reference images are read from paths relative to the OpenCode context directory and are embedded as data URLs after MIME detection.
 

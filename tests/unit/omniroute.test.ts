@@ -76,10 +76,22 @@ describe("callViaOmniRoute", () => {
     )
   })
 
-  test("throws clearly when reference images are passed", async () => {
-    const args: GenerateArgs = { prompt: "a cat", out: "cat.png", quality: "auto" }
-    expect(callViaOmniRoute(auth, args, ["data:image/png;base64,AAA"])).rejects.toThrow(
-      "OmniRoute image generation currently supports text-to-image only; reference images are not supported in OmniRoute mode yet.",
+  test("sends reference images as image_url fields", async () => {
+    const fetchMock = mock(async (_url: string, _init: RequestInit) =>
+      Response.json({ data: [{ b64_json: "BASE64IMAGE" }] }),
     )
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const args: GenerateArgs = { prompt: "a cat", out: "cat.png", quality: "auto" }
+    await callViaOmniRoute(auth, args, ["data:image/png;base64,AAA", "data:image/png;base64,BBB"])
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect(JSON.parse(init.body as string)).toEqual({
+      model: "auto",
+      prompt: "a cat",
+      response_format: "b64_json",
+      image_url: "data:image/png;base64,AAA",
+      image_urls: ["data:image/png;base64,AAA", "data:image/png;base64,BBB"],
+    })
   })
 })

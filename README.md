@@ -19,7 +19,7 @@
 
 - **Subscription-friendly by default.** Generations ride on the same Codex backend channel OpenCode already uses for ChatGPT subscription chat when Codex OAuth exists.
 - **OmniRoute fallback.** If Codex OAuth is unavailable, the plugin can reuse OpenCode's `omniroute` API credential and OpenCode OmniRoute base URL config.
-- **Reference images on Codex.** Pass input images alongside the prompt for style guidance, edit targets, or compositing inputs. OmniRoute fallback currently supports text-to-image only until compatible reference-image support is verified.
+- **Reference images.** Pass input images alongside the prompt for style guidance, edit targets, or compositing inputs. Codex uses hosted `input_image`; OmniRoute sends data URLs through `image_url` / `image_urls` for compatible image models.
 
 ## Installation
 
@@ -104,7 +104,7 @@ Pass any number of image paths via the `images` argument and the model uses them
 
 OpenCode already talks to the OpenAI Codex backend to power ChatGPT subscription chat. This plugin reuses that same endpoint first, attaching the hosted `image_generation` tool to a single-turn request, then writes the returned PNG to disk.
 
-When Codex OAuth is unavailable, the plugin can call OmniRoute's OpenAI-compatible `POST /v1/images/generations` endpoint. OmniRoute mode returns the same safe PNG output path but currently rejects reference images clearly instead of silently ignoring them.
+When Codex OAuth is unavailable, the plugin can call OmniRoute's OpenAI-compatible `POST /v1/images/generations` endpoint. OmniRoute mode returns the same safe PNG output path and forwards reference images as data URLs for providers/models that accept image input.
 
 ## Disclaimer
 

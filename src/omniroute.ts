@@ -10,17 +10,15 @@ export async function callViaOmniRoute(
   args: GenerateArgs,
   inputImageDataUrls: string[],
 ): Promise<string> {
-  if (inputImageDataUrls.length > 0) {
-    throw new Error(
-      "OmniRoute image generation currently supports text-to-image only; reference images are not supported in OmniRoute mode yet.",
-    )
-  }
-
   const body: Record<string, unknown> = {
     model: auth.model,
     prompt: args.prompt,
     response_format: "b64_json",
     ...(args.size ? { size: args.size } : {}),
+  }
+  if (inputImageDataUrls.length > 0) {
+    body.image_url = inputImageDataUrls[0]
+    body.image_urls = inputImageDataUrls
   }
 
   const res = await fetch(`${auth.baseURL}/images/generations`, {
