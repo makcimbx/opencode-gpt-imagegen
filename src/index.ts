@@ -26,12 +26,14 @@ const GptImagePlugin: Plugin = async (_input: PluginInput): Promise<Hooks> => {
             .describe("Output file path, relative to the project directory unless absolute. The plugin writes a PNG."),
           quality: tool.schema
             .enum(["low", "medium", "high", "auto"])
-            .describe("Generation quality passed to the hosted image_generation tool."),
+            .describe(
+              "Requested generation quality. Codex OAuth forwards it best-effort; OmniRoute currently omits it.",
+            ),
           size: tool.schema
             .string()
             .optional()
             .describe(
-              "Optional image size passed to the hosted image_generation tool. Use `auto` or `WIDTHxHEIGHT`; width and height must be multiples of 16px, max edge <= 3840px, long-to-short ratio <= 3:1, and total pixels between 655,360 and 8,294,400.",
+              "Optional requested image size forwarded to the selected backend. Use `auto` or `WIDTHxHEIGHT`; width and height must be multiples of 16px, max edge <= 3840px, long-to-short ratio <= 3:1, and total pixels between 655,360 and 8,294,400. Codex-backed providers may return auto-selected dimensions.",
             ),
           images: tool.schema
             .array(tool.schema.string())

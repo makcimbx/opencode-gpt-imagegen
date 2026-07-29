@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
 import { callViaCodexResponses, parseImageGenerationResultFromSSE } from "../../src/codex"
 import type { GenerateArgs } from "../../src/types"
 
@@ -57,6 +57,12 @@ describe("parseImageGenerationResultFromSSE", () => {
     expect(await parseImageGenerationResultFromSSE(stream)).toBe("RESULT")
   })
 
+  test("ignores an image_generation_call whose result is an empty string", async () => {
+    // An empty result would decode to a 0-byte file and be reported as success; skip it.
+    const stream = sseStream(imageDoneEvent(""), imageDoneEvent("RESULT"))
+    expect(await parseImageGenerationResultFromSSE(stream)).toBe("RESULT")
+  })
+
   test("throws when the stream contains no image_generation result", async () => {
     const stream = sseStream(dataEvent({ type: "response.created" }), "data: [DONE]\n\n")
     expect(parseImageGenerationResultFromSSE(stream)).rejects.toThrow(
@@ -67,8 +73,17 @@ describe("parseImageGenerationResultFromSSE", () => {
 
 describe("callViaCodexResponses", () => {
   const originalFetch = globalThis.fetch
+  const originalCodexModel = process.env.GPT_IMAGEGEN_CODEX_MODEL
+  beforeEach(() => {
+    delete process.env.GPT_IMAGEGEN_CODEX_MODEL
+  })
   afterEach(() => {
     globalThis.fetch = originalFetch
+    if (originalCodexModel === undefined) {
+      delete process.env.GPT_IMAGEGEN_CODEX_MODEL
+    } else {
+      process.env.GPT_IMAGEGEN_CODEX_MODEL = originalCodexModel
+    }
   })
 
   test("posts the request to the codex endpoint and returns the parsed result", async () => {
@@ -93,7 +108,7 @@ describe("callViaCodexResponses", () => {
     expect(headers["Content-Type"]).toBe("application/json")
 
     const body = JSON.parse(init.body as string)
-    expect(body.model).toBe("gpt-5.5")
+    expect(body.model).toBe("gpt-5.6-sol")
     expect(body.stream).toBe(true)
     expect(body.store).toBe(false)
     // The instruction is load-bearing: it forces the backend to emit an image, not text.
@@ -109,6 +124,34 @@ describe("callViaCodexResponses", () => {
       { type: "input_text", text: "a cat" },
       { type: "input_image", image_url: "data:image/png;base64,AAA" },
     ])
+  })
+
+  test("allows the subscription model to be overridden", async () => {
+    process.env.GPT_IMAGEGEN_CODEX_MODEL = "gpt-5.5"
+    const fetchMock = mock(async (_url: string, _init: RequestInit) => new Response(imageDoneEvent("PARSED")))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const auth = { type: "oauth", access: "tok" } as const
+    const args: GenerateArgs = { prompt: "a cat", out: "cat.png", quality: "auto" }
+    await callViaCodexResponses(auth, args, [])
+
+    const [, init] = fetchMock.mock.calls[0]
+    const body = JSON.parse(init.body as string)
+    expect(body.model).toBe("gpt-5.5")
+  })
+
+  test("uses the default subscription model for a blank override", async () => {
+    process.env.GPT_IMAGEGEN_CODEX_MODEL = "  "
+    const fetchMock = mock(async (_url: string, _init: RequestInit) => new Response(imageDoneEvent("PARSED")))
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    const auth = { type: "oauth", access: "tok" } as const
+    const args: GenerateArgs = { prompt: "a cat", out: "cat.png", quality: "auto" }
+    await callViaCodexResponses(auth, args, [])
+
+    const [, init] = fetchMock.mock.calls[0]
+    const body = JSON.parse(init.body as string)
+    expect(body.model).toBe("gpt-5.6-sol")
   })
 
   test("omits optional fields when size, accountId, and reference images are absent", async () => {

@@ -10,8 +10,8 @@ const CONFIG_FILE = path.join(CONFIG_XDG, "opencode", "opencode.jsonc")
 mkdirSync(path.dirname(AUTH_FILE), { recursive: true })
 mkdirSync(path.dirname(CONFIG_FILE), { recursive: true })
 
-// Capture so this file's env edits don't leak into other test files sharing the bun test
-// process — tests/e2e.test.ts spawns opencode with ...process.env.
+// Capture so this file's env edits don't leak into other test files sharing the Bun process;
+// the E2E launchers spawn opencode with ...process.env.
 const ORIGINAL_XDG_DATA_HOME = process.env.XDG_DATA_HOME
 const ORIGINAL_XDG_CONFIG_HOME = process.env.XDG_CONFIG_HOME
 const ORIGINAL_AUTH_CONTENT = process.env.OPENCODE_AUTH_CONTENT
@@ -130,7 +130,7 @@ describe("loadOmniRouteAuth", () => {
       type: "api",
       key: "omni-key",
       baseURL: "http://localhost:20128/v1",
-      model: "codex/gpt-5.5",
+      model: "codex/gpt-5.6-sol",
     })
   })
 
@@ -145,7 +145,7 @@ describe("loadOmniRouteAuth", () => {
       type: "api",
       key: "cfg-key",
       baseURL: "https://llm.example/v1",
-      model: "codex/gpt-5.5",
+      model: "codex/gpt-5.6-sol",
     })
   })
 
@@ -166,7 +166,7 @@ describe("loadOmniRouteAuth", () => {
       type: "api",
       key: "auth-key",
       baseURL: "https://llm.example/v1",
-      model: "codex/gpt-5.5",
+      model: "codex/gpt-5.6-sol",
     })
   })
 
@@ -181,6 +181,13 @@ describe("loadOmniRouteAuth", () => {
       baseURL: "https://env.example/api/v1",
       model: "image-model",
     })
+  })
+
+  test("uses the default model for a blank override", async () => {
+    process.env.OPENCODE_AUTH_CONTENT = JSON.stringify({ omniroute: { type: "api", key: "auth-key" } })
+    process.env.GPT_IMAGEGEN_OMNIROUTE_MODEL = "  "
+
+    expect((await loadOmniRouteAuth())?.model).toBe("codex/gpt-5.6-sol")
   })
 
   test("normalizes base URLs without duplicate /v1", () => {
@@ -205,7 +212,7 @@ describe("resolveImageProvider", () => {
 
     expect(await resolveImageProvider()).toEqual({
       kind: "omniroute",
-      auth: { type: "api", key: "omni-key", baseURL: "http://localhost:20128/v1", model: "codex/gpt-5.5" },
+      auth: { type: "api", key: "omni-key", baseURL: "http://localhost:20128/v1", model: "codex/gpt-5.6-sol" },
     })
   })
 
@@ -227,7 +234,7 @@ describe("resolveImageProvider", () => {
 
     expect(await resolveImageProvider()).toEqual({
       kind: "omniroute",
-      auth: { type: "api", key: "omni-key", baseURL: "http://localhost:20128/v1", model: "codex/gpt-5.5" },
+      auth: { type: "api", key: "omni-key", baseURL: "http://localhost:20128/v1", model: "codex/gpt-5.6-sol" },
     })
   })
 

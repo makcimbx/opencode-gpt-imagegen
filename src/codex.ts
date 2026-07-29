@@ -7,13 +7,12 @@ import type { GenerateArgs, OpenAIAuth } from "./types"
 const CODEX_RESPONSES_ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
 
 // Codex model slug used for the hosted image_generation turn.
-// https://github.com/openai/codex/blob/fca81eeb5bab4cad997622a359d446e6489c445b/codex-rs/models-manager/models.json#L24
-const SUBSCRIPTION_MODEL = "gpt-5.5"
+// https://github.com/openai/codex/blob/6e5a2d6b8d148a5554fdceb6f399ca45bd1c78d9/codex-rs/models-manager/models.json
+const DEFAULT_SUBSCRIPTION_MODEL = "gpt-5.6-sol"
 
 type CodexSSEEvent = {
   type?: string
   item?: { type?: string; result?: string }
-  result?: string
 }
 
 export async function parseImageGenerationResultFromSSE(stream: ReadableStream<Uint8Array>): Promise<string> {
@@ -27,7 +26,9 @@ export async function parseImageGenerationResultFromSSE(stream: ReadableStream<U
       if (
         json.type === "response.output_item.done" &&
         json.item?.type === "image_generation_call" &&
-        typeof json.item.result === "string"
+        typeof json.item.result === "string" &&
+        // Reject an empty result: decoding it would write a 0-byte file and report success.
+        json.item.result.length > 0
       ) {
         return json.item.result
       }
@@ -50,7 +51,7 @@ export async function callViaCodexResponses(
 
   // https://github.com/openai/codex/blob/fca81eeb5bab4cad997622a359d446e6489c445b/codex-rs/core/src/client.rs#L745-L763
   const body: Record<string, unknown> = {
-    model: SUBSCRIPTION_MODEL,
+    model: process.env.GPT_IMAGEGEN_CODEX_MODEL?.trim() || DEFAULT_SUBSCRIPTION_MODEL,
     instructions:
       "You are an image generation assistant running inside the Codex backend. " +
       "Always satisfy the request by invoking the image_generation tool exactly once. " +

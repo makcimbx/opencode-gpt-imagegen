@@ -53,13 +53,18 @@ OmniRoute configuration:
 | Variable / config | Purpose |
 |---|---|
 | `GPT_IMAGEGEN_AUTH_PROVIDER=auto|codex|omniroute` | Select provider behavior; default is `auto` |
+| `GPT_IMAGEGEN_CODEX_MODEL` | Overrides the Codex subscription model; default is `gpt-5.6-sol` |
 | `GPT_IMAGEGEN_OMNIROUTE_BASE_URL` | Overrides the OmniRoute OpenAI-compatible base URL |
-| `GPT_IMAGEGEN_OMNIROUTE_MODEL` | Overrides the OmniRoute image model; default is `codex/gpt-5.5` |
+| `GPT_IMAGEGEN_OMNIROUTE_MODEL` | Overrides the OmniRoute image model; default is `codex/gpt-5.6-sol` |
 | OpenCode `omniroute` auth | Preferred source for the OmniRoute API key |
 | `provider.omniroute.options.baseURL` | Standard OpenCode provider base URL source |
 | OmniRoute wrapper plugin `options.baseURL` | Supported fallback for wrapper configs such as `./plugins/omniroute-wrapper.ts` |
 
 Base URLs are normalized so both `https://host` and `https://host/v1` call `POST /v1/images/generations` without producing `/v1/v1`.
+
+`gpt-5.6-sol` drives the hosted tool call; the rendered image still comes from `gpt-image-2`. If an account or OmniRoute deployment does not expose GPT-5.6 yet, use the corresponding model override to select `gpt-5.5`.
+
+Exact `size` and `quality` are currently best-effort on Codex-backed paths. Codex OAuth forwards both values; OmniRoute forwards `size` but currently omits unverified `quality`. The upstream Codex image backend may still select automatic settings and return different PNG dimensions, and the plugin does not rescale the result. This affects both paths and is tracked in [openai/codex#28723](https://github.com/openai/codex/issues/28723).
 
 ## Usage
 
@@ -95,9 +100,8 @@ Pass any number of image paths via the `images` argument and the model uses them
 
 | Version | Auth path | Scope | Status |
 |---|---|---|---|
-| **v0.1.x** | ChatGPT subscription | `gpt_imagegen` with optional reference images (generation + reference-guided edits via prompting) | **Released** |
-| **v0.2.0** | OmniRoute API | Adds OmniRoute text-to-image fallback and provider forcing | Next |
-| **v0.3.0** | OpenAI API key | Adds the API-key billing path: both `generate` (`/v1/images/generations`) and `edit` (`/v1/images/edits`) with reference images | Planned |
+| **v0.1.x** | ChatGPT subscription + OmniRoute API | `gpt_imagegen` with provider selection, safe output, and optional reference images | **Released** |
+| **v0.2.0** | OpenAI API key | Adds the API-key billing path: both `generate` (`/v1/images/generations`) and `edit` (`/v1/images/edits`) with reference images | Planned |
 | **Later** | OpenAI API key | Adds **pixel-precise mask inpainting** via `/v1/images/edits` (binary PNG alpha mask) | Planned |
 
 ## How it works
