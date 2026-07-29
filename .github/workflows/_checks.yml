@@ -1,13 +1,24 @@
 name: Checks
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: Git ref to check
+        required: false
+        type: string
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.ref || github.sha }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
