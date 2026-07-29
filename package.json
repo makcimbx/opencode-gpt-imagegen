@@ -26,9 +26,9 @@
     "test:e2e_subscription": "OPENCODE_MODEL=openai/gpt-5.6-sol bun test tests/e2e/subscription.test.ts",
     "test:e2e_omniroute": "GPT_IMAGEGEN_AUTH_PROVIDER=omniroute bun test tests/e2e/omniroute.test.ts",
     "prepublishOnly": "bun run build",
-    "release:patch": "bash scripts/prepare-release.sh patch && git push --follow-tags",
-    "release:minor": "bash scripts/prepare-release.sh minor && git push --follow-tags",
-    "release:major": "bash scripts/prepare-release.sh major && git push --follow-tags"
+    "release:patch": "bun scripts/prepare-release.ts patch",
+    "release:minor": "bun scripts/prepare-release.ts minor",
+    "release:major": "bun scripts/prepare-release.ts major"
   },
   "keywords": [
     "opencode",
