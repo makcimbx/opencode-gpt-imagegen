@@ -7,8 +7,8 @@ import type { GenerateArgs, OpenAIAuth } from "./types"
 const CODEX_RESPONSES_ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
 
 // Codex model slug used for the hosted image_generation turn.
-// https://github.com/openai/codex/blob/6e5a2d6b8d148a5554fdceb6f399ca45bd1c78d9/codex-rs/models-manager/models.json
-const DEFAULT_SUBSCRIPTION_MODEL = "gpt-5.6-sol"
+// https://github.com/openai/codex/blob/d42056091aded7feb1d88ac7e83972108b2aa478/codex-rs/models-manager/models.json
+const DEFAULT_SUBSCRIPTION_MODEL = "gpt-6.1-sol"
 
 type CodexSSEEvent = {
   type?: string

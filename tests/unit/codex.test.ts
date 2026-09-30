@@ -108,7 +108,7 @@ describe("callViaCodexResponses", () => {
     expect(headers["Content-Type"]).toBe("application/json")
 
     const body = JSON.parse(init.body as string)
-    expect(body.model).toBe("gpt-5.6-sol")
+    expect(body.model).toBe("gpt-6.1-sol")
     expect(body.stream).toBe(true)
     expect(body.store).toBe(false)
     // The instruction is load-bearing: it forces the backend to emit an image, not text.
@@ -151,7 +151,7 @@ describe("callViaCodexResponses", () => {
 
     const [, init] = fetchMock.mock.calls[0]
     const body = JSON.parse(init.body as string)
-    expect(body.model).toBe("gpt-5.6-sol")
+    expect(body.model).toBe("gpt-6.1-sol")
   })
 
   test("omits optional fields when size, accountId, and reference images are absent", async () => {

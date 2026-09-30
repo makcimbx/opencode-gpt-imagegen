@@ -56,7 +56,7 @@ async function runOpencode(prompt: string): Promise<void> {
         ...process.env,
         XDG_CONFIG_HOME,
         GPT_IMAGEGEN_AUTH_PROVIDER: "omniroute",
-        GPT_IMAGEGEN_OMNIROUTE_MODEL: "codex/gpt-5.6-sol",
+        GPT_IMAGEGEN_OMNIROUTE_MODEL: "codex/gpt-6.1-sol",
       },
     })
     const timer = setTimeout(() => {

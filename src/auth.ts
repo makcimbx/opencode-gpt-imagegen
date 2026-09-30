@@ -4,7 +4,7 @@ import { xdgConfig, xdgData } from "xdg-basedir"
 import type { ImageProvider, ImageProviderMode, OmniRouteAuth, OpenAIAuth } from "./types"
 
 const DEFAULT_OMNIROUTE_BASE_URL = "http://localhost:20128/v1"
-const DEFAULT_OMNIROUTE_MODEL = "codex/gpt-5.6-sol"
+const DEFAULT_OMNIROUTE_MODEL = "codex/gpt-6.1-sol"
 
 // Mirrors OpenCode's auth resolution: OPENCODE_AUTH_CONTENT overrides $XDG_DATA_HOME/opencode/auth.json.
 // The Auth service is not exposed to external plugins, so this reproduces the rules directly.

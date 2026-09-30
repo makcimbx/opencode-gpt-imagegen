@@ -1,7 +1,7 @@
 {
   "name": "@makcimbx/opencode-gpt-imagegen",
   "version": "0.1.11",
-  "description": "OpenCode plugin for GPT Image 2 generation through Codex OAuth or OmniRoute fallback, with reference images and safe PNG output.",
+  "description": "OpenCode plugin for image generation through Codex OAuth or OmniRoute fallback, with reference images and safe PNG output.",
   "type": "module",
   "main": "./dist/index.js",
   "exports": {
@@ -23,7 +23,7 @@
     "prebuild": "rm -rf dist",
     "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external",
     "test": "bun test tests/unit",
-    "test:e2e_subscription": "OPENCODE_MODEL=openai/gpt-5.6-sol bun test tests/e2e/subscription.test.ts",
+    "test:e2e_subscription": "OPENCODE_MODEL=openai/gpt-6.1-sol bun test tests/e2e/subscription.test.ts",
     "test:e2e_omniroute": "GPT_IMAGEGEN_AUTH_PROVIDER=omniroute bun test tests/e2e/omniroute.test.ts",
     "prepublishOnly": "bun run build",
     "release:patch": "bun scripts/prepare-release.ts patch",
@@ -61,15 +61,15 @@
     "@opencode-ai/plugin": "^1.14.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.3",
-    "@opencode-ai/plugin": "^1.14.41",
-    "@tsconfig/node22": "^22.0.2",
-    "@types/bun": "^1.3.14",
+    "@biomejs/biome": "^2.5.14",
+    "@opencode-ai/plugin": "^1.18.33",
+    "@tsconfig/node22": "^22.0.6",
+    "@types/bun": "^1.4.2",
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "eventsource-parser": "^3.0.8",
-    "file-type": "^22.0.1",
+    "eventsource-parser": "^4.1.1",
+    "file-type": "^22.1.1",
     "xdg-basedir": "^5.1.0"
   }
 }
