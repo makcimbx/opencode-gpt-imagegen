@@ -1,4 +1,6 @@
+import { Buffer } from "node:buffer"
 import * as fs from "node:fs/promises"
+import * as os from "node:os"
 import * as path from "node:path"
 import { xdgConfig, xdgData } from "xdg-basedir"
 import type { ImageProvider, ImageProviderMode, OmniRouteAuth, OpenAIAuth } from "./types"
@@ -153,15 +155,41 @@ export function normalizeOmniRouteBaseURL(raw: string): string {
   return url.toString().replace(/\/+$/, "")
 }
 
-export async function loadOpenAIAuth(): Promise<OpenAIAuth | undefined> {
+async function loadOpenCodeOpenAIAuth(): Promise<OpenAIAuth | undefined> {
+  const data = await loadAuthData()
+  const entry = data.openai as Partial<OpenAIAuth> | undefined
+  return entry?.type === "oauth" && typeof entry.access === "string" ? (entry as OpenAIAuth) : undefined
+}
+
+// Codex CLI keeps its ChatGPT login in $CODEX_HOME/auth.json (default ~/.codex).
+async function loadCodexCliAuth(): Promise<OpenAIAuth | undefined> {
+  const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex")
+  const data = JSON.parse(await fs.readFile(path.join(codexHome, "auth.json"), "utf-8")) as Record<string, unknown>
+  const tokens = isRecord(data.tokens) ? data.tokens : undefined
+  const access = stringValue(tokens?.access_token)
+  if (!access) return undefined
+  const accountId = stringValue(tokens?.account_id)
+  return { type: "oauth", access, ...(accountId ? { accountId } : {}) }
+}
+
+// ChatGPT access tokens are JWTs that only OpenCode and Codex CLI refresh, and only while they run,
+// so a stale copy is skipped instead of being sent to the backend to fail with 401.
+function isExpiredJwt(token: string): boolean {
   try {
-    const data = await loadAuthData()
-    const entry = data.openai as Partial<OpenAIAuth> | undefined
-    if (entry?.type === "oauth" && typeof entry.access === "string") {
-      return entry as OpenAIAuth
+    const payload = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString("utf-8")) as {
+      exp?: unknown
     }
+    return typeof payload.exp === "number" && payload.exp * 1000 <= Date.now()
   } catch {
-    return undefined
+    return false
+  }
+}
+
+// OpenCode's login wins over Codex CLI's; an expired token from either source is ignored.
+export async function loadOpenAIAuth(): Promise<OpenAIAuth | undefined> {
+  for (const load of [loadOpenCodeOpenAIAuth, loadCodexCliAuth]) {
+    const auth = await load().catch(() => undefined)
+    if (auth && !isExpiredJwt(auth.access)) return auth
   }
   return undefined
 }
@@ -200,7 +228,9 @@ export async function resolveImageProvider(): Promise<ImageProvider> {
     const openai = await loadOpenAIAuth()
     if (openai) return { kind: "codex", auth: openai }
     if (mode === "codex") {
-      throw new Error("Codex provider requested, but OpenAI ChatGPT OAuth credentials are not configured.")
+      throw new Error(
+        "Codex provider requested, but no unexpired ChatGPT OAuth credentials were found in OpenCode or Codex CLI auth.",
+      )
     }
   }
 
@@ -211,6 +241,6 @@ export async function resolveImageProvider(): Promise<ImageProvider> {
   }
 
   throw new Error(
-    "No image provider credentials configured. Connect OpenAI ChatGPT OAuth in OpenCode or configure OmniRoute API credentials.",
+    "No image provider credentials configured. Sign in with ChatGPT in OpenCode or Codex CLI (running either one refreshes an expired token), or configure OmniRoute API credentials.",
   )
 }

@@ -9,11 +9,14 @@ const CONFIG_XDG = mkdtempSync(path.join(os.tmpdir(), "auth-cfg-"))
 const CONFIG_FILE = path.join(CONFIG_XDG, "opencode", "opencode.jsonc")
 mkdirSync(path.dirname(AUTH_FILE), { recursive: true })
 mkdirSync(path.dirname(CONFIG_FILE), { recursive: true })
+const CODEX_HOME = mkdtempSync(path.join(os.tmpdir(), "auth-codex-"))
+const CODEX_AUTH_FILE = path.join(CODEX_HOME, "auth.json")
 
 // Capture so this file's env edits don't leak into other test files sharing the Bun process;
 // the E2E launchers spawn opencode with ...process.env.
 const ORIGINAL_XDG_DATA_HOME = process.env.XDG_DATA_HOME
 const ORIGINAL_XDG_CONFIG_HOME = process.env.XDG_CONFIG_HOME
+const ORIGINAL_CODEX_HOME = process.env.CODEX_HOME
 const ORIGINAL_AUTH_CONTENT = process.env.OPENCODE_AUTH_CONTENT
 const ORIGINAL_AUTH_PROVIDER = process.env.GPT_IMAGEGEN_AUTH_PROVIDER
 const ORIGINAL_OMNIROUTE_BASE_URL = process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL
@@ -36,6 +39,7 @@ beforeAll(async () => {
   // importing the module under test (which transitively imports xdg-basedir).
   process.env.XDG_DATA_HOME = XDG
   process.env.XDG_CONFIG_HOME = CONFIG_XDG
+  process.env.CODEX_HOME = CODEX_HOME
   const auth = await import("../../src/auth")
   loadOpenAIAuth = auth.loadOpenAIAuth
   loadOmniRouteAuth = auth.loadOmniRouteAuth
@@ -46,6 +50,7 @@ beforeAll(async () => {
 afterAll(() => {
   restoreEnv("XDG_DATA_HOME", ORIGINAL_XDG_DATA_HOME)
   restoreEnv("XDG_CONFIG_HOME", ORIGINAL_XDG_CONFIG_HOME)
+  restoreEnv("CODEX_HOME", ORIGINAL_CODEX_HOME)
   restoreEnv("OPENCODE_AUTH_CONTENT", ORIGINAL_AUTH_CONTENT)
   restoreEnv("GPT_IMAGEGEN_AUTH_PROVIDER", ORIGINAL_AUTH_PROVIDER)
   restoreEnv("GPT_IMAGEGEN_OMNIROUTE_BASE_URL", ORIGINAL_OMNIROUTE_BASE_URL)
@@ -60,6 +65,15 @@ function writeConfigFile(content: string): void {
   writeFileSync(CONFIG_FILE, content)
 }
 
+function writeCodexAuthFile(tokens: Record<string, unknown>): void {
+  writeFileSync(CODEX_AUTH_FILE, JSON.stringify({ auth_mode: "chatgpt", OPENAI_API_KEY: null, tokens }))
+}
+
+function jwtExpiringIn(seconds: number): string {
+  const payload = Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds })).toString("base64url")
+  return `e30.${payload}.sig`
+}
+
 beforeEach(() => {
   delete process.env.OPENCODE_AUTH_CONTENT
   delete process.env.GPT_IMAGEGEN_AUTH_PROVIDER
@@ -68,6 +82,7 @@ beforeEach(() => {
   // Start each test from a no-credentials baseline; tests opt in to a file.
   writeAuthFile("{}")
   writeConfigFile("{}")
+  rmSync(CODEX_AUTH_FILE, { force: true })
 })
 
 afterEach(() => {
@@ -119,6 +134,30 @@ describe("loadOpenAIAuth", () => {
   test("returns undefined when the auth.json file is missing", async () => {
     rmSync(AUTH_FILE, { force: true })
     // The read rejects; loadOpenAIAuth swallows it and reports no credentials.
+    expect(await loadOpenAIAuth()).toBeUndefined()
+  })
+
+  test("falls back to the Codex CLI login when OpenCode has no openai entry", async () => {
+    writeCodexAuthFile({ access_token: "tok-codex", account_id: "acct-codex", refresh_token: "r" })
+    expect(await loadOpenAIAuth()).toEqual({ type: "oauth", access: "tok-codex", accountId: "acct-codex" })
+  })
+
+  test("prefers the OpenCode login over the Codex CLI login", async () => {
+    writeAuthFile(JSON.stringify({ openai: { type: "oauth", access: "tok-file" } }))
+    writeCodexAuthFile({ access_token: "tok-codex" })
+    expect(await loadOpenAIAuth()).toEqual({ type: "oauth", access: "tok-file" })
+  })
+
+  test("skips an expired OpenCode token in favor of an unexpired Codex CLI token", async () => {
+    const fresh = jwtExpiringIn(3600)
+    writeAuthFile(JSON.stringify({ openai: { type: "oauth", access: jwtExpiringIn(-60) } }))
+    writeCodexAuthFile({ access_token: fresh })
+    expect(await loadOpenAIAuth()).toEqual({ type: "oauth", access: fresh })
+  })
+
+  test("returns undefined when every available token is expired", async () => {
+    writeAuthFile(JSON.stringify({ openai: { type: "oauth", access: jwtExpiringIn(-60) } }))
+    writeCodexAuthFile({ access_token: jwtExpiringIn(-60) })
     expect(await loadOpenAIAuth()).toBeUndefined()
   })
 })
@@ -221,7 +260,7 @@ describe("resolveImageProvider", () => {
     process.env.OPENCODE_AUTH_CONTENT = JSON.stringify({ omniroute: { type: "api", key: "omni-key" } })
 
     expect(resolveImageProvider()).rejects.toThrow(
-      "Codex provider requested, but OpenAI ChatGPT OAuth credentials are not configured.",
+      "Codex provider requested, but no unexpired ChatGPT OAuth credentials were found in OpenCode or Codex CLI auth.",
     )
   })
 

@@ -1,0 +1,19 @@
+{
+  "name": "makcimbx",
+  "owner": {
+    "name": "makcimbx"
+  },
+  "metadata": {
+    "description": "Claude Code plugins by makcimbx."
+  },
+  "plugins": [
+    {
+      "name": "gpt-imagegen",
+      "source": {
+        "source": "npm",
+        "package": "@makcimbx/opencode-gpt-imagegen"
+      },
+      "description": "Generate raster images through ChatGPT/Codex OAuth or OmniRoute, with reference images and non-overwriting PNG output."
+    }
+  ]
+}

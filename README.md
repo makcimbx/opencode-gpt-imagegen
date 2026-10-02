@@ -2,7 +2,7 @@
 
 <p align="center"><img src="./ogp.png" alt="opencode-gpt-imagegen" /></p>
 
-> Bring **image generation** to [OpenCode](https://opencode.ai). It uses your **ChatGPT/Codex OAuth** path first and can fall back to **OmniRoute** when Codex auth is unavailable.
+> Bring **image generation** to [OpenCode](https://opencode.ai) and [Claude Code](https://claude.com/claude-code). It uses your **ChatGPT/Codex OAuth** path first and can fall back to **OmniRoute** when Codex auth is unavailable.
 
 [![OpenCode plugin](https://img.shields.io/badge/OpenCode-plugin-blue.svg)](https://opencode.ai/docs/plugins/)
 [![npm version](https://img.shields.io/npm/v/@makcimbx/opencode-gpt-imagegen.svg)](https://www.npmjs.com/package/@makcimbx/opencode-gpt-imagegen)
@@ -19,9 +19,12 @@
 
 - **Subscription-friendly by default.** Generations ride on the same Codex backend channel OpenCode already uses for ChatGPT subscription chat when Codex OAuth exists.
 - **OmniRoute fallback.** If Codex OAuth is unavailable, the plugin can reuse OpenCode's `omniroute` API credential and OpenCode OmniRoute base URL config.
+- **OpenCode and Claude Code.** The same npm package is an OpenCode plugin and a Claude Code plugin (bundled MCP server) exposing the same `gpt_imagegen` tool.
 - **Reference images.** Pass input images alongside the prompt for style guidance, edit targets, or compositing inputs. Codex uses hosted `input_image`; OmniRoute sends data URLs through `image_url` / `image_urls` for compatible image models.
 
 ## Installation
+
+### OpenCode
 
 Add this plugin to your [OpenCode config](https://opencode.ai/docs/plugins/). For example, in `opencode.json`:
 
@@ -34,11 +37,24 @@ Add this plugin to your [OpenCode config](https://opencode.ai/docs/plugins/). Fo
 
 OpenCode auto-installs the package via Bun on next launch — no separate `npm install` step is needed. The plugin works best when OpenCode is authenticated with ChatGPT/Codex OAuth, and can also use OmniRoute credentials already stored in OpenCode auth.
 
+### Claude Code
+
+The repository is also a Claude Code plugin marketplace. Inside Claude Code run:
+
+```
+/plugin marketplace add makcimbx/opencode-gpt-imagegen
+/plugin install gpt-imagegen@makcimbx
+```
+
+Claude Code fetches the plugin from npm and starts the self-contained `dist/mcp.js` MCP server with Node.js, so no extra install step is needed. Output and reference image paths are resolved relative to the project directory. Credentials come from the same places as in OpenCode, plus the Codex CLI login (see [Auth Selection](#auth-selection)); environment variables below can be set in your shell or in the `env` block of Claude Code's `settings.json`.
+
+Other MCP clients can start the same stdio server with `npx -y @makcimbx/opencode-gpt-imagegen`.
+
 ## Auth Selection
 
 Default behavior is `auto`:
 
-1. Use Codex OAuth from OpenCode's `openai` auth entry when available.
+1. Use Codex OAuth from OpenCode's `openai` auth entry when available, otherwise from the Codex CLI login (`$CODEX_HOME/auth.json`, default `~/.codex/auth.json`). Expired access tokens are skipped: the plugin never refreshes or rewrites either login, so if both are expired, start OpenCode or Codex CLI once to refresh them.
 2. Otherwise fall back to OmniRoute API auth from OpenCode's `omniroute` auth entry or `provider.omniroute.options.apiKey`.
 
 Force a provider for debugging:
@@ -112,6 +128,6 @@ When Codex OAuth is unavailable, the plugin can call OmniRoute's OpenAI-compatib
 
 ## Disclaimer
 
-This is an **unofficial, third-party** plugin, not affiliated with or endorsed by OpenAI or OpenCode.
+This is an **unofficial, third-party** plugin, not affiliated with or endorsed by OpenAI, OpenCode, or Anthropic.
 
 It uses the same Codex backend endpoint OpenCode itself calls for ChatGPT subscription chat — this plugin just adds the hosted `image_generation` tool to that conversation. Use must comply with OpenAI's [Terms of Use](https://openai.com/policies/row-terms-of-use/) and [Usage Policies](https://openai.com/policies/usage-policies/).

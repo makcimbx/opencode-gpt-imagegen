@@ -1,9 +1,12 @@
 {
   "name": "@makcimbx/opencode-gpt-imagegen",
   "version": "0.1.13",
-  "description": "OpenCode plugin for image generation through Codex OAuth or OmniRoute fallback, with reference images and safe PNG output.",
+  "description": "OpenCode plugin and Claude Code MCP server for image generation through Codex OAuth or OmniRoute fallback, with reference images and safe PNG output.",
   "type": "module",
   "main": "./dist/index.js",
+  "bin": {
+    "gpt-imagegen-mcp": "./dist/mcp.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js"
@@ -11,6 +14,7 @@
   },
   "files": [
     "dist",
+    ".claude-plugin/plugin.json",
     "README.md",
     "LICENSE"
   ],
@@ -21,10 +25,11 @@
     "typecheck": "tsc --noEmit",
     "check": "biome check --write .",
     "prebuild": "rm -rf dist",
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external && bun build ./src/mcp.ts --outdir ./dist --target node --format esm",
     "test": "bun test tests/unit",
     "test:e2e_subscription": "OPENCODE_MODEL=openai/gpt-6.1-sol bun test tests/e2e/subscription.test.ts",
     "test:e2e_omniroute": "GPT_IMAGEGEN_AUTH_PROVIDER=omniroute bun test tests/e2e/omniroute.test.ts",
+    "version": "bun scripts/sync-plugin-version.ts && git add .claude-plugin/plugin.json",
     "prepublishOnly": "bun run build",
     "release:patch": "bun scripts/prepare-release.ts patch",
     "release:minor": "bun scripts/prepare-release.ts minor",
@@ -34,6 +39,9 @@
     "opencode",
     "opencode-plugin",
     "opencode-ai",
+    "claude-code",
+    "claude-code-plugin",
+    "mcp",
     "openai",
     "gpt-image-2",
     "gpt-image",
@@ -62,10 +70,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
+    "@modelcontextprotocol/server": "^2.2.0",
     "@opencode-ai/plugin": "^1.18.33",
     "@tsconfig/node22": "^22.0.6",
     "@types/bun": "^1.4.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "zod": "^4.6.5"
   },
   "dependencies": {
     "eventsource-parser": "^4.1.1",
