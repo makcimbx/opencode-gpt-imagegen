@@ -9,7 +9,24 @@
   "mcpServers": {
     "imagegen": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/mcp.js"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/mcp.js"],
+      "env": {
+        "GPT_IMAGEGEN_OMNIROUTE_BASE_URL": "${user_config.omniroute_base_url}",
+        "GPT_IMAGEGEN_OMNIROUTE_API_KEY": "${user_config.omniroute_api_key}"
+      }
+    }
+  },
+  "userConfig": {
+    "omniroute_base_url": {
+      "type": "string",
+      "title": "OmniRoute base URL",
+      "description": "OpenAI-compatible OmniRoute endpoint used when ChatGPT OAuth is missing or expired, e.g. https://omniroute.example.com/v1. Leave empty to use OpenCode's OmniRoute config or http://localhost:20128/v1."
+    },
+    "omniroute_api_key": {
+      "type": "string",
+      "title": "OmniRoute API key",
+      "description": "API key for the OmniRoute endpoint. Leave empty to use the key stored in OpenCode.",
+      "sensitive": true
     }
   }
 }

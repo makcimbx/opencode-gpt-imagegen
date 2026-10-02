@@ -200,12 +200,16 @@ export async function loadOmniRouteAuth(): Promise<OmniRouteAuth | undefined> {
   const standardOptions = getStandardOmniRouteOptions(config)
   const wrapperOptions = getOmniRouteWrapperOptions(config)
 
+  // Empty env values count as unset: Claude Code passes unconfigured plugin options to the MCP server as "".
   const key =
-    getOmniRouteApiKeyFromAuth(authData) ?? stringValue(standardOptions?.apiKey) ?? stringValue(wrapperOptions?.apiKey)
+    stringValue(process.env.GPT_IMAGEGEN_OMNIROUTE_API_KEY) ??
+    getOmniRouteApiKeyFromAuth(authData) ??
+    stringValue(standardOptions?.apiKey) ??
+    stringValue(wrapperOptions?.apiKey)
   if (!key) return undefined
 
   const baseURL = normalizeOmniRouteBaseURL(
-    process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL ??
+    stringValue(process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL) ??
       stringValue(standardOptions?.baseURL) ??
       stringValue(wrapperOptions?.baseURL) ??
       DEFAULT_OMNIROUTE_BASE_URL,

@@ -21,6 +21,7 @@ const ORIGINAL_AUTH_CONTENT = process.env.OPENCODE_AUTH_CONTENT
 const ORIGINAL_AUTH_PROVIDER = process.env.GPT_IMAGEGEN_AUTH_PROVIDER
 const ORIGINAL_OMNIROUTE_BASE_URL = process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL
 const ORIGINAL_OMNIROUTE_MODEL = process.env.GPT_IMAGEGEN_OMNIROUTE_MODEL
+const ORIGINAL_OMNIROUTE_API_KEY = process.env.GPT_IMAGEGEN_OMNIROUTE_API_KEY
 let loadOpenAIAuth: typeof import("../../src/auth").loadOpenAIAuth
 let loadOmniRouteAuth: typeof import("../../src/auth").loadOmniRouteAuth
 let normalizeOmniRouteBaseURL: typeof import("../../src/auth").normalizeOmniRouteBaseURL
@@ -55,6 +56,7 @@ afterAll(() => {
   restoreEnv("GPT_IMAGEGEN_AUTH_PROVIDER", ORIGINAL_AUTH_PROVIDER)
   restoreEnv("GPT_IMAGEGEN_OMNIROUTE_BASE_URL", ORIGINAL_OMNIROUTE_BASE_URL)
   restoreEnv("GPT_IMAGEGEN_OMNIROUTE_MODEL", ORIGINAL_OMNIROUTE_MODEL)
+  restoreEnv("GPT_IMAGEGEN_OMNIROUTE_API_KEY", ORIGINAL_OMNIROUTE_API_KEY)
 })
 
 function writeAuthFile(content: string): void {
@@ -79,6 +81,7 @@ beforeEach(() => {
   delete process.env.GPT_IMAGEGEN_AUTH_PROVIDER
   delete process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL
   delete process.env.GPT_IMAGEGEN_OMNIROUTE_MODEL
+  delete process.env.GPT_IMAGEGEN_OMNIROUTE_API_KEY
   // Start each test from a no-credentials baseline; tests opt in to a file.
   writeAuthFile("{}")
   writeConfigFile("{}")
@@ -90,6 +93,7 @@ afterEach(() => {
   delete process.env.GPT_IMAGEGEN_AUTH_PROVIDER
   delete process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL
   delete process.env.GPT_IMAGEGEN_OMNIROUTE_MODEL
+  delete process.env.GPT_IMAGEGEN_OMNIROUTE_API_KEY
 })
 
 describe("loadOpenAIAuth", () => {
@@ -163,6 +167,34 @@ describe("loadOpenAIAuth", () => {
 })
 
 describe("loadOmniRouteAuth", () => {
+  test("API key and base URL env vars override OpenCode config", async () => {
+    process.env.OPENCODE_AUTH_CONTENT = JSON.stringify({ omniroute: { type: "api", key: "auth-key" } })
+    writeConfigFile(JSON.stringify({ provider: { omniroute: { options: { baseURL: "https://cfg.example/v1" } } } }))
+    process.env.GPT_IMAGEGEN_OMNIROUTE_API_KEY = "env-key"
+    process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL = "https://env.example"
+
+    expect(await loadOmniRouteAuth()).toEqual({
+      type: "api",
+      key: "env-key",
+      baseURL: "https://env.example/v1",
+      model: "codex/gpt-6.1-sol",
+    })
+  })
+
+  test("empty API key and base URL env vars fall back to OpenCode config", async () => {
+    // Claude Code passes unconfigured plugin options as empty strings.
+    process.env.OPENCODE_AUTH_CONTENT = JSON.stringify({ omniroute: { type: "api", key: "auth-key" } })
+    process.env.GPT_IMAGEGEN_OMNIROUTE_API_KEY = ""
+    process.env.GPT_IMAGEGEN_OMNIROUTE_BASE_URL = ""
+
+    expect(await loadOmniRouteAuth()).toEqual({
+      type: "api",
+      key: "auth-key",
+      baseURL: "http://localhost:20128/v1",
+      model: "codex/gpt-6.1-sol",
+    })
+  })
+
   test("reads an API-key entry from OpenCode auth data", async () => {
     process.env.OPENCODE_AUTH_CONTENT = JSON.stringify({ omniroute: { type: "api", key: "omni-key" } })
     expect(await loadOmniRouteAuth()).toEqual({
